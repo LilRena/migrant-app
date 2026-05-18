@@ -19,6 +19,8 @@ class Student(Base):
     period = Column(Integer)
     visa_expiry = Column(String)
     registration_expiry = Column(String)
+    hashed_password = Column(String)
+    email = Column(String)
 
 class Task(Base):
     __tablename__ = "tasks"
