@@ -4,6 +4,7 @@ from database import SessionLocal, Student
 from auth import verify_password
 from pydantic import BaseModel
 from jose import jwt
+from database import get_db
 
 SECRET_KEY = "твой_секретный_ключ"
 ALGORITHM = "HS256"
@@ -13,13 +14,6 @@ class LoginData(BaseModel):
     password: str
 
 router = APIRouter()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 def create_token(data: dict) -> str:
     return jwt.encode(data,SECRET_KEY,ALGORITHM)
