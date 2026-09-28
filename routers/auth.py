@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import Student
@@ -17,7 +18,10 @@ class LoginData(BaseModel):
 router = APIRouter()
 
 def create_token(data: dict) -> str:
-    return jwt.encode(data, SECRET_KEY, ALGORITHM)
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=30)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, ALGORITHM)
 
 @router.post("/login")
 def login_students(login_data: LoginData, db: Session = Depends(get_db)):

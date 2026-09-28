@@ -23,7 +23,7 @@ def get_tasks(
     db: Session = Depends(get_db),
     current_student: Student = Depends(get_current_student)
 ):
-    tasks = db.query(Task).all()
+    tasks = db.query(Task).filter(Task.student_id == current_student.id).all()
     return tasks
 
 @router.post("/tasks")
@@ -32,7 +32,12 @@ def create_tasks(
     db: Session = Depends(get_db),
     current_student: Student = Depends(get_current_student)
 ):
-    new_task = Task(name=task.name, deadline=task.deadline, status=task.status)
+    new_task = Task(
+        name=task.name,
+        deadline=task.deadline,
+        status=task.status,
+        student_id=current_student.id
+    )
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
@@ -45,7 +50,7 @@ def update_tasks(
     db: Session = Depends(get_db),
     current_student: Student = Depends(get_current_student)
 ):
-    task_db = db.query(Task).filter(Task.id == id).first()
+    task_db = db.query(Task).filter(Task.id == id, Task.student_id == current_student.id).first()
     if not task_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Задача не найдена")
     task_db.name = task.name
@@ -60,7 +65,7 @@ def delete_tasks(
     db: Session = Depends(get_db),
     current_student: Student = Depends(get_current_student)
 ):
-    task_db = db.query(Task).filter(Task.id == id).first()
+    task_db = db.query(Task).filter(Task.id == id, Task.student_id == current_student.id).first()
     if not task_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Задача не найдена")
     db.delete(task_db)
