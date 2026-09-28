@@ -1,9 +1,12 @@
-from sqlalchemy import create_engine, Column, Integer, String
+import os
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import ForeignKey
 
-DATABASE_URL = "postgresql://migrant_user:password123@localhost/migrant_app"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://migrant_user:password123@localhost/migrant_app"
+)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)

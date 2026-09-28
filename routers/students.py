@@ -15,7 +15,7 @@ class StudentsCreate(BaseModel):
     visa_expiry: str
     registration_expiry: str
     email: str
-    hashed_password: str
+    password: str
 
 class StudentsUpdate(BaseModel):
     name: str
@@ -28,7 +28,9 @@ class StudentsUpdate(BaseModel):
 
 @router.post("/students")
 def post_students(students: StudentsCreate, db: Session = Depends(get_db)):
-    hashed = hash_password(students.hashed_password)
+    existing = db.query(Student).filter(Student.email == students.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Студент с таким email уже существует")
     new_student = Student(
         name=students.name,
         country=students.country,
@@ -36,7 +38,7 @@ def post_students(students: StudentsCreate, db: Session = Depends(get_db)):
         period=students.period,
         visa_expiry=students.visa_expiry,
         registration_expiry=students.registration_expiry,
-        hashed_password=hashed,
+        hashed_password=hash_password(students.password),
         email=students.email
     )
     db.add(new_student)
