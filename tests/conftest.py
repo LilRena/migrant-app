@@ -1,19 +1,40 @@
 import os
+import sys
 import pytest
+from dotenv import load_dotenv
+
+load_dotenv()  # load .env so TEST_DATABASE_URL and DATABASE_URL are available
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
 from app.db import Base, get_db
-from app.main import app
+from app.main import app as fastapi_app
 
-TEST_DB_URL = os.environ.get(
-    "TEST_DATABASE_URL",
-    # fallback to main db if test db not available — safe because each test rolls back
-    os.environ.get("DATABASE_URL", "postgresql://migrant_user:password123@localhost/migrant_app"),
-)
+# import models so Base.metadata knows all tables
+import app.models.user  # noqa: F401
+import app.models.profile  # noqa: F401
+import app.models.steps  # noqa: F401
 
-test_engine = create_engine(TEST_DB_URL)
+_test_url = os.environ.get("TEST_DATABASE_URL", "")
+_main_url = os.environ.get("DATABASE_URL", "")
+
+if not _test_url:
+    print(
+        "ERROR: TEST_DATABASE_URL is not set. Set it in .env before running tests.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+if _test_url == _main_url:
+    print(
+        "ERROR: TEST_DATABASE_URL must differ from DATABASE_URL. "
+        "Tests must not run on the main database.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+test_engine = create_engine(_test_url)
 TestingSession = sessionmaker(bind=test_engine, autocommit=False, autoflush=False)
 
 
@@ -38,12 +59,9 @@ def db():
 @pytest.fixture()
 def client(db):
     def override_get_db():
-        try:
-            yield db
-        finally:
-            pass
+        yield db
 
-    app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
+    fastapi_app.dependency_overrides[get_db] = override_get_db
+    with TestClient(fastapi_app) as c:
         yield c
-    app.dependency_overrides.clear()
+    fastapi_app.dependency_overrides.clear()
