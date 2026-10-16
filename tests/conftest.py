@@ -3,16 +3,16 @@ import sys
 import pytest
 from dotenv import load_dotenv
 
-load_dotenv()  # load .env so TEST_DATABASE_URL and DATABASE_URL are available
+load_dotenv()
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
+from app.config import get_upload_dir
 from app.db import Base, get_db
 from app.main import app as fastapi_app
 
-# import models so Base.metadata knows all tables
-import app.models.user  # noqa: F401
+import app.models.user   # noqa: F401
 import app.models.profile  # noqa: F401
 import app.models.steps  # noqa: F401
 
@@ -57,11 +57,18 @@ def db():
 
 
 @pytest.fixture()
-def client(db):
+def client(db, tmp_path):
+    test_upload_dir = tmp_path / "uploads"
+    test_upload_dir.mkdir()
+
     def override_get_db():
         yield db
 
+    def override_upload_dir():
+        return test_upload_dir
+
     fastapi_app.dependency_overrides[get_db] = override_get_db
+    fastapi_app.dependency_overrides[get_upload_dir] = override_upload_dir
     with TestClient(fastapi_app) as c:
         yield c
     fastapi_app.dependency_overrides.clear()

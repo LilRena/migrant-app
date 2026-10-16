@@ -9,11 +9,11 @@ from app.models.profile import StudentProfile
 def calculate_due_date(template: StepTemplate, profile: StudentProfile) -> date | None:
     """Return the due date for a step given the student's profile dates."""
     if template.deadline_type == DeadlineType.days_after_arrival:
-        if profile.arrival_date is None:
+        if profile.arrival_date is None or template.deadline_days is None:
             return None
         return profile.arrival_date + timedelta(days=template.deadline_days)
     if template.deadline_type == DeadlineType.days_before_visa_expiry:
-        if profile.visa_expiry is None:
+        if profile.visa_expiry is None or template.deadline_days is None:
             return None
         return profile.visa_expiry - timedelta(days=template.deadline_days)
     return None  # deadline_type == "none"

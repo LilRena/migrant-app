@@ -1,9 +1,11 @@
 """Tests for Stage 2: profile, step assignment, due-date calculation."""
 from datetime import date, timedelta
+import pytest
 
 from app.models.steps import StepTemplate, DeadlineType, StudentStep, StepStatus
 from app.models.user import User, UserRole
 from app.security import hash_password, create_token
+from scripts.load_steps import validate_step_data
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -195,6 +197,51 @@ def test_student_sees_only_own_steps(client, db):
     r_a = client.get("/me/steps", headers=auth_headers(student_a)).json()
     r_b = client.get("/me/steps", headers=auth_headers(student_b)).json()
 
-    ids_a = {s["id"] for s in r_a["steps"]}
-    ids_b = {s["id"] for s in r_b["steps"]}
-    assert ids_a.isdisjoint(ids_b)  # no shared step IDs
+    # each student sees exactly 1 step
+    assert r_a["total"] == 1
+    assert r_b["total"] == 1
+    # step IDs are different — each student got their own row
+    id_a = r_a["steps"][0]["id"]
+    id_b = r_b["steps"][0]["id"]
+    assert id_a != id_b
+
+
+# ── profile validation ────────────────────────────────────────────────────────
+
+def test_country_code_lowercased_is_saved_as_upper(client, db):
+    student = make_student(db, "lower@example.com")
+    r = client.put("/me/profile", json={"country_code": "kz"}, headers=auth_headers(student))
+    assert r.status_code == 200
+    assert r.json()["country_code"] == "KZ"
+
+
+def test_country_code_too_long_returns_422(client, db):
+    student = make_student(db, "toolong@example.com")
+    r = client.put("/me/profile", json={"country_code": "Kazakhstan"}, headers=auth_headers(student))
+    assert r.status_code == 422
+
+
+def test_course_out_of_range_returns_422(client, db):
+    student = make_student(db, "course@example.com")
+    r = client.put("/me/profile", json={"course": 7}, headers=auth_headers(student))
+    assert r.status_code == 422
+
+
+# ── load_steps validation ─────────────────────────────────────────────────────
+
+def test_validate_step_data_passes_for_none_deadline():
+    validate_step_data({"order": 1, "deadline_type": "none", "deadline_days": None}, 0)
+
+
+def test_validate_step_data_passes_with_positive_days():
+    validate_step_data({"order": 1, "deadline_type": "days_after_arrival", "deadline_days": 7}, 0)
+
+
+def test_validate_step_data_fails_when_days_missing():
+    with pytest.raises(ValueError, match="deadline_days"):
+        validate_step_data({"order": 1, "title": "X", "deadline_type": "days_after_arrival", "deadline_days": None}, 0)
+
+
+def test_validate_step_data_fails_when_days_zero():
+    with pytest.raises(ValueError):
+        validate_step_data({"order": 1, "title": "X", "deadline_type": "days_before_visa_expiry", "deadline_days": 0}, 0)
