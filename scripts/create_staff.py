@@ -3,6 +3,7 @@ Create a staff account. Run from the project root:
     python -m scripts.create_staff
 """
 import sys
+import getpass
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,12 +14,16 @@ from app.security import hash_password
 
 
 def main():
-    email = input("Email сотрудника: ").strip()
+    email = input("Email сотрудника: ").strip().lower()
     full_name = input("Имя сотрудника: ").strip()
-    password = input("Пароль: ").strip()
+    password = getpass.getpass("Пароль (мин. 8 символов): ")
 
-    if not email or not password or not full_name:
+    if not email or not full_name:
         print("Все поля обязательны.")
+        sys.exit(1)
+
+    if len(password) < 8:
+        print("Пароль должен содержать не менее 8 символов.")
         sys.exit(1)
 
     db = SessionLocal()

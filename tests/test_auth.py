@@ -2,6 +2,8 @@
 from datetime import datetime, timedelta
 from jose import jwt
 from app.config import settings
+from app.models.user import User, UserRole
+from app.security import hash_password, create_token
 
 
 # helpers
@@ -28,13 +30,47 @@ def test_register_returns_user(client):
 
 
 def test_register_role_is_always_student(client):
-    r = register(client, email="a@example.com")
+    """Even if the request includes role=staff, the result must be student."""
+    r = client.post("/auth/register", json={
+        "email": "a@example.com", "password": "secret123", "full_name": "Test", "role": "staff"
+    })
+    assert r.status_code == 201
     assert r.json()["role"] == "student"
 
 
 def test_register_duplicate_email_returns_400(client):
     register(client, email="dup@example.com")
     r = register(client, email="dup@example.com")
+    assert r.status_code == 400
+
+
+def test_short_password_returns_422(client):
+    r = client.post("/auth/register", json={
+        "email": "short@example.com", "password": "1234567", "full_name": "Test"
+    })
+    assert r.status_code == 422
+
+
+def test_empty_full_name_returns_422(client):
+    r = client.post("/auth/register", json={
+        "email": "noname@example.com", "password": "secret123", "full_name": ""
+    })
+    assert r.status_code == 422
+
+
+# --- email normalisation ---
+
+def test_email_case_insensitive_login(client):
+    """Register with mixed case, login with lowercase — must succeed."""
+    register(client, email="User@Example.com")
+    r = login(client, email="user@example.com")
+    assert r.status_code == 200
+
+
+def test_register_duplicate_email_case_insensitive(client):
+    """Re-registering with a different casing must be rejected."""
+    register(client, email="casei@example.com")
+    r = register(client, email="CASEI@example.com")
     assert r.status_code == 400
 
 
@@ -49,7 +85,7 @@ def test_login_returns_token(client):
 
 
 def test_wrong_password_returns_401(client):
-    register(client, email="wp@example.com", password="correct")
+    register(client, email="wp@example.com", password="correct1")
     r = login(client, email="wp@example.com", password="wrong")
     assert r.status_code == 401
 
@@ -61,7 +97,7 @@ def test_wrong_email_returns_401(client):
 
 def test_wrong_email_and_wrong_password_same_message(client):
     """Both bad-email and bad-password must return the identical error detail."""
-    register(client, email="same@example.com", password="correct")
+    register(client, email="same@example.com", password="correct1")
     r_bad_email = login(client, email="noone@example.com", password="x")
     r_bad_pass = login(client, email="same@example.com", password="wrong")
     assert r_bad_email.status_code == r_bad_pass.status_code == 401
@@ -87,7 +123,6 @@ def test_me_without_token_returns_401(client):
 
 def test_expired_token_returns_401(client):
     register(client, email="exp@example.com")
-    # create a token that expired 1 second ago
     expired_payload = {
         "sub": "exp@example.com",
         "exp": datetime.utcnow() - timedelta(seconds=1),
@@ -104,3 +139,24 @@ def test_student_on_staff_endpoint_returns_403(client):
     token = login(client, email="student@example.com").json()["access_token"]
     r = client.get("/staff/students", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 403
+
+
+def test_staff_can_access_staff_endpoint(client, db):
+    """Staff user created directly in DB must get 200 on /staff/students."""
+    staff = User(
+        email="staff@example.com",
+        hashed_password=hash_password("staffpass1"),
+        full_name="Staff User",
+        role=UserRole.staff,
+    )
+    db.add(staff)
+    db.commit()
+    db.refresh(staff)
+    token = create_token({"sub": staff.email})
+    r = client.get("/staff/students", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200
+
+
+def test_staff_endpoint_without_token_returns_401(client):
+    r = client.get("/staff/students")
+    assert r.status_code == 401
