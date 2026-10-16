@@ -1,0 +1,57 @@
+[
+  {
+    "country_code": null,
+    "order": 1,
+    "title": "Договор об обучении",
+    "description": "Получается при зачислении",
+    "location": null,
+    "deadline_type": "none",
+    "deadline_days": null,
+    "requires_upload": true,
+    "is_demo": true
+  },
+  {
+    "country_code": null,
+    "order": 2,
+    "title": "Миграционная карта",
+    "description": "Заполняется на границе",
+    "location": null,
+    "deadline_type": "none",
+    "deadline_days": null,
+    "requires_upload": true,
+    "is_demo": true
+  },
+  {
+    "country_code": null,
+    "order": 3,
+    "title": "Регистрация по месту проживания",
+    "description": null,
+    "location": "Миграционный центр КФУ, каб. 214",
+    "deadline_type": "days_after_arrival",
+    "deadline_days": 7,
+    "requires_upload": true,
+    "is_demo": true
+  },
+  {
+    "country_code": null,
+    "order": 4,
+    "title": "Разрешение на временное проживание",
+    "description": "После получения регистрации",
+    "location": "МВД, ул. Большая Красная, 67",
+    "deadline_type": "none",
+    "deadline_days": null,
+    "requires_upload": true,
+    "is_demo": true
+  },
+  {
+    "country_code": null,
+    "order": 5,
+    "title": "Продление студенческой визы",
+    "description": null,
+    "location": null,
+    "deadline_type": "days_before_visa_expiry",
+    "deadline_days": 30,
+    "requires_upload": true,
+    "is_demo": true
+  }
+]

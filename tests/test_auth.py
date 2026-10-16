@@ -51,6 +51,14 @@ def test_short_password_returns_422(client):
     assert r.status_code == 422
 
 
+def test_cyrillic_long_password_returns_422(client):
+    """40 Cyrillic letters = 80 bytes UTF-8, exceeds bcrypt 72-byte limit."""
+    r = client.post("/auth/register", json={
+        "email": "cyrillic@example.com", "password": "а" * 40, "full_name": "Test"
+    })
+    assert r.status_code == 422
+
+
 def test_empty_full_name_returns_422(client):
     r = client.post("/auth/register", json={
         "email": "noname@example.com", "password": "secret123", "full_name": ""

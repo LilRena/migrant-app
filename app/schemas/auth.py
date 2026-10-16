@@ -17,8 +17,9 @@ class RegisterRequest(BaseModel):
     def validate_password(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError("Пароль должен содержать не менее 8 символов")
-        if len(v) > 72:
-            raise ValueError("Пароль не может быть длиннее 72 символов")
+        # bcrypt silently truncates at 72 bytes, so we reject longer passwords
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError("Пароль не может быть длиннее 72 байт")
         return v
 
     @field_validator("full_name")

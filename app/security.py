@@ -51,3 +51,9 @@ def require_staff(current_user=Depends(get_current_user)):
     if current_user.role != "staff":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Staff only")
     return current_user
+
+
+def require_student(current_user=Depends(get_current_user)):
+    if current_user.role != "student":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Students only")
+    return current_user
