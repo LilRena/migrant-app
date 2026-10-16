@@ -26,4 +26,20 @@ Python 3.12, FastAPI, SQLAlchemy 2, Alembic, PostgreSQL, Pydantic v2, JWT (pytho
 
 ## Команды
 
-Заполнить после Этапа 0: запуск сервера, тесты, миграции, загрузка шагов, создание сотрудника.
+```bash
+# Запуск сервера
+uvicorn app.main:app --reload
+
+# Тесты
+pytest
+
+# Миграции
+alembic upgrade head          # применить все миграции
+alembic revision --autogenerate -m "описание"  # создать новую миграцию
+
+# Загрузка демо-шагов (Этап 2)
+python -m scripts.load_steps
+
+# Создание аккаунта сотрудника
+python -m scripts.create_staff
+```
